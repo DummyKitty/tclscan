@@ -1,22 +1,48 @@
-name: Rust
+name: Build and Release
 
 on:
   push:
-    branches: [ "master" ]
-  pull_request:
-    branches: [ "master" ]
-
-env:
-  CARGO_TERM_COLOR: always
+    tags:
+      - 'v*.*.*'  # 仅在推送标签时触发，例如 v1.0.0
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        override: true
+
     - name: Build
-      run: cargo build --verbose
-    - name: Run tests
-      run: cargo test --verbose
+      run: cargo build --release
+
+    - name: Archive Release
+      uses: actions/upload-artifact@v3
+      with:
+        name: my-rust-program
+        path: target/release/my-rust-program  # 替换为您的可执行文件路径
+
+  release:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+    - name: Download Artifact
+      uses: actions/download-artifact@v3
+      with:
+        name: tclscan
+
+    - name: Create Release
+      uses: ncipollo/release-action@v1
+      with:
+        artifacts: tclscan
+        token: ${{ secrets.GITHUB_TOKEN }}
+        tag: ${{ github.ref_name }}
+        name: Release ${{ github.ref_name }}
+        body: |
+          自动生成的发布版本。
